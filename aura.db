@@ -1,0 +1,32 @@
+-- Create Database (if not already created)
+CREATE DATABASE IF NOT EXISTS aura_db;
+
+-- Use the created database
+USE user_profiles_db;
+
+-- Create a table to store user profiles (basic user info)
+CREATE TABLE IF NOT EXISTS profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    language VARCHAR(50),
+    notifications_enabled BOOLEAN DEFAULT TRUE
+);
+
+-- Create a table to store relationships (e.g., "BFF")
+CREATE TABLE IF NOT EXISTS user_relationships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    relationship_type VARCHAR(50),  -- e.g., "BFF"
+    related_user_name VARCHAR(255),
+    FOREIGN KEY (user_email) REFERENCES profiles(email) ON DELETE CASCADE
+);
+
+-- Create a table to store user preferences (e.g., likes, dislikes)
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    preference_type VARCHAR(50),  -- e.g., "likes", "dislikes"
+    preference_value VARCHAR(255),
+    FOREIGN KEY (user_email) REFERENCES profiles(email) ON DELETE CASCADE
+);
