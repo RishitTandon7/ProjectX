@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA - User Profile Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        form input, form select, form button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        #userProfile, #relationshipForm, #preferenceForm {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AURA - User Profile Management</h1>
+
+        <!-- Form to add a new user -->
+        <div id="addUserForm">
+            <h2>Add New User</h2>
+            <form id="userForm">
+                <input type="text" id="userName" placeholder="Enter Name" required />
+                <input type="email" id="userEmail" placeholder="Enter Email" required />
+                <select id="userLanguage">
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Spanish">Spanish</option>
+                </select>
+                <label>
+                    <input type="checkbox" id="notificationsEnabled" checked />
+                    Enable Notifications
+                </label>
+                <button type="submit">Add User</button>
+            </form>
+        </div>
+
+        <!-- Display user profile -->
+        <div id="userProfile" style="display:none;">
+            <h2>User Profile</h2>
+            <p><strong>Name: </strong><span id="profileName"></span></p>
+            <p><strong>Email: </strong><span id="profileEmail"></span></p>
+            <p><strong>Language: </strong><span id="profileLanguage"></span></p>
+            <p><strong>Notifications: </strong><span id="profileNotifications"></span></p>
+        </div>
+
+        <!-- Relationship Form -->
+        <div id="relationshipForm">
+            <h2>Set Relationship</h2>
+            <input type="text" id="relatedUserEmail" placeholder="Enter Friend's Email" required />
+            <input type="text" id="relationshipType" placeholder="Enter Relationship (e.g., BFF)" required />
+            <button type="button" onclick="addRelationship()">Set Relationship</button>
+        </div>
+
+        <!-- Preferences Form -->
+        <div id="preferenceForm">
+            <h2>Set Preferences</h2>
+            <input type="text" id="preferenceType" placeholder="Enter Preference Type (e.g., Likes)" required />
+            <input type="text" id="preferenceValue" placeholder="Enter Preference Value (e.g., Pizza)" required />
+            <button type="button" onclick="addPreference()">Set Preference</button>
+        </div>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        let userDatabase = {};  // In-memory user database for demo
+
+        // Add new user
+        document.getElementById('userForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('userName').value;
+            const email = document.getElementById('userEmail').value;
+            const language = document.getElementById('userLanguage').value;
+            const notifications = document.getElementById('notificationsEnabled').checked;
+
+            if (!userDatabase[email]) {
+                userDatabase[email] = {
+                    name,
+                    email,
+                    language,
+                    notifications,
+                    relationships: [],
+                    preferences: []
+                };
+
+                displayUserProfile(email);
+                alert('User added successfully!');
+            } else {
+                alert('User already exists!');
+            }
+        });
+
+        // Display user profile
+        function displayUserProfile(email) {
+            const user = userDatabase[email];
+
+            document.getElementById('profileName').textContent = user.name;
+            document.getElementById('profileEmail').textContent = user.email;
+            document.getElementById('profileLanguage').textContent = user.language;
+            document.getElementById('profileNotifications').textContent = user.notifications ? 'Enabled' : 'Disabled';
+
+            document.getElementById('userProfile').style.display = 'block';
+        }
+
+        // Add relationship
+        function addRelationship() {
+            const email = document.getElementById('userEmail').value;
+            const relatedEmail = document.getElementById('relatedUserEmail').value;
+            const relationshipType = document.getElementById('relationshipType').value;
+
+            if (userDatabase[email] && userDatabase[relatedEmail]) {
+                userDatabase[email].relationships.push({
+                    relatedEmail,
+                    relationshipType
+                });
+                alert(`Added relationship: ${relationshipType} with ${relatedEmail}`);
+            } else {
+                alert('User not found!');
+            }
+        }
+
+        // Add preference
+        function addPreference() {
+            const email = document.getElementById('userEmail').value;
+            const preferenceType = document.getElementById('preferenceType').value;
+            const preferenceValue = document.getElementById('preferenceValue').value;
+
+            if (userDatabase[email]) {
+                userDatabase[email].preferences.push({
+                    preferenceType,
+                    preferenceValue
+                });
+                alert(`Added preference: ${preferenceType} - ${preferenceValue}`);
+            } else {
+                alert('User not found!');
+            }
+        }
+    </script>
+</body>
+</html>
+
