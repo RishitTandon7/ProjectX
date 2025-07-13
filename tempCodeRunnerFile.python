@@ -1,0 +1,255 @@
+import requests
+import speech_recognition as sr
+import pyttsx3
+import json
+import os
+import smtplib
+from email.mime.text import MIMEText
+from twilio.rest import Client
+import geocoder
+import datetime
+import cv2
+import ollama
+
+# Constants (Replace with your actual keys securely)
+GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'
+WEATHER_API_KEY = 'YOUR_WEATHER_API_KEY'
+TWILIO_ACCOUNT_SID = 'YOUR_TWILIO_ACCOUNT_SID'
+TWILIO_AUTH_TOKEN = 'YOUR_TWILIO_AUTH_TOKEN'
+TWILIO_WHATSAPP_NUMBER = '+14155238886'
+USER_WHATSAPP_NUMBER = 'USER_WHATSAPP_NUMBER'  # Replace with your WhatsApp number
+GMAIL_USER = 'your_email@gmail.com'
+GMAIL_PASSWORD = 'your_email_password'
+
+# Emergency contacts dictionary
+contacts_dict = {}
+
+# Initialize Text to Speech Engine
+engine = pyttsx3.init()
+
+# Function to set the voice to female
+def set_female_voice():
+    voices = engine.getProperty('voices')
+    female_voice = None
+    for voice in voices:
+        if 'female' in voice.name.lower():
+            female_voice = voice
+            break
+    if female_voice:
+        engine.setProperty('voice', female_voice.id)
+    else:
+        print("Female voice not found, defaulting to system voice.")
+
+set_female_voice()
+
+# Function to speak text
+def speak(text):
+    print(f"Aura says: {text}")  # Debugging: Print what Aura says
+    engine.say(text)
+    engine.runAndWait()
+
+# Function to listen to user input
+def listen():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source)
+    try:
+        print("Recognizing...")
+        return recognizer.recognize_google(audio).lower()  # Make the input lowercase for comparison
+    except sr.UnknownValueError:
+        speak("Sorry, I didn't catch that.")
+        return None
+    except sr.RequestError:
+        speak("Sorry, I am having trouble connecting to the service.")
+        return None
+
+# Function to greet the user based on the time of the day
+def greet_user():
+    current_hour = datetime.datetime.now().hour
+    if current_hour < 12:
+        speak("Good morning! How can I assist you today?")
+    elif current_hour < 18:
+        speak("Good afternoon! How can I assist you today?")
+    else:
+        speak("Good evening! How can I assist you today?")
+
+# Function to fetch weather info
+def get_weather(city):
+    url = f"http://api.openweathermap.org/data/2.5/weather?appid={WEATHER_API_KEY}&q={city}"
+    response = requests.get(url)
+    data = response.json()
+
+    if data.get("cod") != 200:
+        speak("Sorry, I couldn't retrieve weather information.")
+        return None
+
+    main = data["main"]
+    weather = data["weather"][0]
+    temp = main["temp"] - 273.15  # Convert Kelvin to Celsius
+    description = weather["description"]
+
+    return f"The temperature in {city} is {temp:.1f}°C with {description}."
+
+# Function to query Gemini API
+def query_gemini_api(query):
+    data = {
+        "contents": [{
+            "parts": [{
+                "text": query
+            }]
+        }]
+    }
+    response = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}", json=data)
+    if response.status_code == 200:
+        result = response.json()
+        content = result.get("result", {}).get("content", [])
+        if content:
+            return content[0]["parts"][0]["text"]
+        return "Sorry, I couldn't retrieve the information."
+    else:
+        return "Sorry, there was an error querying the Gemini API."
+
+# Function to detect object in image using Ollama Vision
+def detect_object_in_image(image_path):
+    response = ollama.chat(
+        model="llama3.2-vision",
+        messages=[{
+            "role": "user",
+            "content": "What is in this image?",
+            "images": [image_path]
+        }]
+    )
+    return response
+
+# Function to send SOS message using Twilio
+def send_sos_message():
+    # Get current location (just an example)
+    g = geocoder.ip('me')
+    location = g.latlng
+
+    if location:
+        lat, lng = location
+        message = f"Emergency! Please help. My location is: https://maps.google.com/?q={lat},{lng}"
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        client.messages.create(
+            to=f"whatsapp:{USER_WHATSAPP_NUMBER}",
+            from_=f"whatsapp:{TWILIO_WHATSAPP_NUMBER}",
+            body=message
+        )
+        speak("SOS message sent.")
+    else:
+        speak("Could not get your location. SOS message not sent.")
+
+# Function to detect face in image using OpenCV
+def detect_face_in_image(image_path):
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+
+    if len(faces) == 0:
+        return "No faces detected."
+    else:
+        return f"Detected {len(faces)} face(s)."
+
+# Function to send email
+def send_email(recipient, subject, body):
+    msg = MIMEText(body)
+    msg['From'] = GMAIL_USER
+    msg['To'] = recipient
+    msg['Subject'] = subject
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        server.sendmail(GMAIL_USER, recipient, msg.as_string())
+        server.quit()
+        speak(f"Email sent to {recipient}")
+    except Exception as e:
+        speak(f"Failed to send email. Error: {e}")
+
+# Function to store and recall contacts in a dictionary
+def store_contact(name, phone_number):
+    contacts_dict[name] = phone_number
+    speak(f"Contact {name} has been saved.")
+
+def send_message_to_contact(name, message):
+    if name in contacts_dict:
+        contact_number = contacts_dict[name]
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        client.messages.create(
+            to=f"whatsapp:{contact_number}",
+            from_=f"whatsapp:{TWILIO_WHATSAPP_NUMBER}",
+            body=message
+        )
+        speak(f"Message sent to {name}.")
+    else:
+        speak(f"No contact found for {name}.")
+
+# Main function to interact with user
+def main():
+    greet_user()
+    
+    while True:
+        print("Listening for your command...")
+        query = listen()
+
+        if query and 'aura' in query:  # Only trigger if 'aura' is in the command
+            print(f"You asked: {query}")
+
+            if 'weather' in query:
+                city = query.split('in')[-1].strip()
+                weather_info = get_weather(city)
+                speak(weather_info)
+
+            elif 'sos' in query:
+                speak("Sending emergency message.")
+                send_sos_message()
+
+            elif 'object detection' in query or 'image search' in query:
+                speak("Please show me the image.")
+                image_path = 'captured_image.jpg'  # Placeholder, this should be an image capture code
+                speak("What do you want to know about this image?")
+                additional_query = listen()
+                if additional_query:
+                    response = detect_object_in_image(image_path)
+                    speak(f"Here is the analysis: {response}")
+                else:
+                    speak("No query received for image.")
+
+            elif 'face detection' in query:
+                speak("Please show me the image for face detection.")
+                image_path = 'captured_image.jpg'  # Placeholder, this should be an image capture code
+                response = detect_face_in_image(image_path)
+                speak(response)
+
+            elif 'search' in query:
+                speak("What would you like to search for?")
+                search_query = listen()
+                if search_query:
+                    response = query_gemini_api(search_query)
+                    speak(f"Here is what I found: {response}")
+                else:
+                    speak("No search query received.")
+
+            elif 'save contact' in query:
+                speak("Please tell me the name and phone number of the contact.")
+                contact_info = listen()
+                if contact_info:
+                    name, phone_number = contact_info.split(' ')  # Simple split, you may need more complex parsing
+                    store_contact(name, phone_number)
+
+            elif 'send message to' in query:
+                speak("Please tell me the name of the contact and the message.")
+                message_info = listen()
+                if message_info:
+                    name, message = message_info.split(' ', 1)
+                    send_message_to_contact(name, message)
+
+            elif 'exit' in query:
+                speak("Goodbye!")
+                break
+
+if __name__ == "__main__":
+    main()
