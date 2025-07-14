@@ -796,14 +796,14 @@ def main():
                 speak("Goodbye!")
                 break
 
-GEMINI_API_KEY = "AIzaSyCH4e3uW1SuQXUY7DaNAzrURAo88XMutzo"
-WEATHER_API_KEY =  "caee82e8e463de3e8f49dd36df54db44"
-TWILIO_ACCOUNT_SID = "AC5d73acabe916a4e4ebce286317dccb09"
-TWILIO_AUTH_TOKEN = "525a40d253983dcad7df16fa3a15efbd"
-TWILIO_WHATSAPP_NUMBER = "+1415523888"
-USER_WHATSAPP_NUMBER = "525a40d253983dcad7df16fa3a15efbd"
-GMAIL_USER = "rt5136@srmist.edu.in"
-GMAIL_PASSWORD = "Prokingxtopia.7"
+GEMINI_API_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+WEATHER_API_KEY =  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+TWILIO_ACCOUNT_SID = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+TWILIO_AUTH_TOKEN = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+TWILIO_WHATSAPP_NUMBER = "+xxxxxxxxxx"
+USER_WHATSAPP_NUMBER = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+GMAIL_USER = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+GMAIL_PASSWORD = "xxxxxxxxxxxxxxxx"
 
 if __name__ == "__main__":
     main()
