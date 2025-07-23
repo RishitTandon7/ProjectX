@@ -18,6 +18,8 @@ import math
 import random
 import psutil
 import socket
+import webbrowser
+import feedparser
 
 # Emergency contacts dictionary
 contacts_dict = {}
@@ -43,9 +45,16 @@ def speak(text):
 def listen():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source, duration=1)  # Adjust for ambient noise
+        speak("I am listening now.")
         print("Listening...")
-        audio = recognizer.listen(source)
+        try:
+            audio = recognizer.listen(source, timeout=5, phrase_time_limit=7)
+        except sr.WaitTimeoutError:
+            speak("Listening timed out, please try again.")
+            return None
     try:
+        speak("Recognizing your speech.")
         print("Recognizing...")
         return recognizer.recognize_google(audio).lower()  # Make the input lowercase for comparison
     except sr.UnknownValueError:
@@ -58,12 +67,26 @@ def listen():
 # Function to greet the user based on the time of the day
 def greet_user():
     current_hour = datetime.datetime.now().hour
+    greetings = []
     if current_hour < 12:
-        speak("Good morning! How can I assist you today?")
+        greetings = [
+            "Good morning! How can I assist you today?",
+            "Top of the morning to you! What can I do for you?",
+            "Morning! Ready to help you."
+        ]
     elif current_hour < 18:
-        speak("Good afternoon! How can I assist you today?")
+        greetings = [
+            "Good afternoon! How can I assist you today?",
+            "Hope you're having a great afternoon! How can I help?",
+            "Afternoon! What can I do for you?"
+        ]
     else:
-        speak("Good evening! How can I assist you today?")
+        greetings = [
+            "Good evening! How can I assist you today?",
+            "Evening! How may I help you tonight?",
+            "Good evening! Ready to assist you."
+        ]
+    speak(random.choice(greetings))
 
 # Function to fetch weather info
 def get_weather(city):
@@ -471,23 +494,48 @@ def llama_conversation(prompt):
     return response
 
 # Main function to interact with user
-import webbrowser
-import feedparser
+
+
+import json
 
 # Conversation memory to store recent interactions
 conversation_memory = []
 
+CONVERSATION_HISTORY_FILE = "conversation_history.json"
+
+def load_conversation_history():
+    global conversation_memory
+    try:
+        with open(CONVERSATION_HISTORY_FILE, "r", encoding="utf-8") as f:
+            conversation_memory = json.load(f)
+    except FileNotFoundError:
+        conversation_memory = []
+    except Exception as e:
+        print(f"Error loading conversation history: {e}")
+        conversation_memory = []
+
+def save_conversation_history():
+    try:
+        with open(CONVERSATION_HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(conversation_memory, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving conversation history: {e}")
+
 def add_to_memory(user_input, assistant_response):
     conversation_memory.append({"user": user_input, "assistant": assistant_response})
     # Keep memory size limited
-    if len(conversation_memory) > 10:
+    if len(conversation_memory) > 50:
         conversation_memory.pop(0)
+    save_conversation_history()
 
 def voice_web_search(query):
     # Simple web search using default search engine
     search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
     webbrowser.open(search_url)
     speak(f"Here are the search results for {query}")
+
+# Load conversation history at startup
+load_conversation_history()
 
 def open_website(url):
     if not url.startswith("http"):
@@ -807,4 +855,5 @@ GMAIL_PASSWORD = "Prokingxtopia.7"
 
 if __name__ == "__main__":
     main()
+
 
