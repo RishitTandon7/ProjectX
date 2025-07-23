@@ -1,0 +1,11 @@
+requests
+SpeechRecognition
+pyttsx3
+twilio
+geocoder
+opencv-python
+ollama
+feedparser
+pyaudio
+psutil
+
